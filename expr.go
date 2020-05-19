@@ -27,6 +27,7 @@ var Prefix = map[TokenType]PrefixParser{
 	TokenGT:    UnaryParser(6),
 	TokenLT:    UnaryParser(6),
 	TokenLTE:   UnaryParser(6),
+	TokenBang:  UnaryParser(6),
 	TokenPlus:  UnaryParser(6),
 	TokenMinus: UnaryParser(6),
 }

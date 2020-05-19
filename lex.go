@@ -28,6 +28,7 @@ const (
 	TokenGTE
 	TokenLT
 	TokenLTE
+	TokenBang
 	TokenComma
 	TokenColon
 	TokenSemicolon
@@ -60,6 +61,7 @@ var TokenStr = [...]string{
 	TokenGTE:        ">=",
 	TokenLT:         "<",
 	TokenLTE:        "<=",
+	TokenBang:       "!",
 	TokenComma:      ",",
 	TokenColon:      ":",
 	TokenSemicolon:  ";",
@@ -457,6 +459,9 @@ func (l *Lexer) Next() Token {
 			case ';':
 				l.next()
 				l.emit(TokenSemicolon)
+			case '!':
+				l.next()
+				l.emit(TokenBang)
 			case ',':
 				l.next()
 				l.emit(TokenComma)

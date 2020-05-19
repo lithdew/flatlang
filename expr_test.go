@@ -12,30 +12,14 @@ func TestParseLiteralExpr(t *testing.T) {
 		src      string
 		expected *string
 	}{
-		{
-			src:      `>=100|"test"|<=500"test"1 2 3`,
-			expected: S(`(((>=100) | "test") | (<=500))`),
-		},
-		{
-			src:      `"test"|<30.4`,
-			expected: S(`("test" | (<30.4))`),
-		},
-		{
-			src:      `"hello"|(world + (3.4 + 4.9)) test`,
-			expected: S(`("hello" | (world + (3.4 + 4.9)))`),
-		},
-		{
-			src:      `40 + 100 * 32 / 40`,
-			expected: S(`(40 + ((100 * 32) / 40))`),
-		},
-		{
-			src:      `test(-1.3 + 44)`,
-			expected: S(`test`),
-		},
-		{
-			src:      `test - 1.3 + 44`,
-			expected: S(`((test - 1.3) + 44)`),
-		},
+		{src: `>=100|"test"|<=500"test"1 2 3`, expected: S(`(((>=100) | "test") | (<=500))`)},
+		{src: `"test"|<30.4`, expected: S(`("test" | (<30.4))`)},
+		{src: `"hello"|(world + (3.4 + 4.9)) test`, expected: S(`("hello" | (world + (3.4 + 4.9)))`)},
+		{src: `40 + 100 * 32 / 40`, expected: S(`(40 + ((100 * 32) / 40))`)},
+		{src: `test(-1.3 + 44)`, expected: S(`test`)},
+		{src: `test - 1.3 + 44`, expected: S(`((test - 1.3) + 44)`)},
+		{src: `!test | "hello"`, expected: S(`((!test) | "hello")`)},
+		{src: `>=400 & <=450 | >=1000 & <=5000`, expected: S(`((((>=400) & (<=450)) | (>=1000)) & (<=5000))`)},
 		{src: `40 + 100 * 32 / <=40`},
 		{src: `"hello"|(world + (3.4 & "test")) test`},
 		{src: `>=|`},
