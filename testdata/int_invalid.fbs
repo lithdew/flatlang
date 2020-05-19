@@ -1,0 +1,7 @@
+_42         // an identifier, not an integer literal
+42_         // invalid: _ must separate successive digits
+4__2        // invalid: only one _ at a time
+0_xBadFace  // invalid: _ must separate successive digits
+
+0o777
+0b99

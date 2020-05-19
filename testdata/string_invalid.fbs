@@ -1,0 +1,9 @@
+"\uD800"             // illegal: surrogate half
+"\U00110000"         // illegal: invalid Unicode code point
+
+"\!"                 // illegal: invalid char escape
+"\799"               // illegal: invalid char escape
+
+'                    // illegal: string literal not terminated
+"                    // illegal: string literal not terminated
+`                    // illegal: raw string literal not terminated

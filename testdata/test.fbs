@@ -1,0 +1,44 @@
+// Database URL.
+
+db = 'sqlite://:memory:';
+
+// SQL query handlers.
+
+all_posts = sql db 'select * from posts limit :limit offset :offset' 'posts';
+find_post = sql db 'select * from posts where id = :id' 'post';
+new_post  = sql db 'insert into posts (author, content) values (:author, :content) returning id' 'id';
+
+// An example expanded-form of a SQL query.
+
+expanded_form = sql {db: db, query: 'select * from posts limit :limit offset :offset', set: 'posts'};
+
+// Pagination helper.
+
+paginate =
+    > default {offset: 0, limit: 1024}
+    > require {offset: >=0, limit: >=0 & <=1024}
+    > set ['limit', 'offset'];
+
+// GET "/posts" returns at most 1024 posts.
+
+get "/posts"
+	> paginate
+	> find_post
+	> encode;
+
+// GET "/posts/:id" returns a post with a specific id = ":id".
+
+get "/posts/:id"
+    > find_post
+    > encode;
+
+// POST "/posts" creates a new post. Author and content must be provided.
+
+post {path: "/posts", max_body_size: 128}
+	> decode
+	> new_post
+	> encode;
+
+// A simple health check endpoint that returns {status: "ok"}.
+
+get "/health" > set {status: "ok"} > encode;

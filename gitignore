@@ -1,0 +1,5 @@
+.idea/
+corpus/
+crashers/
+suppressions/
+flatlang-fuzz.zip

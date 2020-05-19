@@ -1,0 +1,14 @@
+0x.p1        // invalid: mantissa has no digits
+1p-2         // invalid: 'p' exponent requires hexadecimal mantissa
+0x1.5e-2     // invalid: hexadecimal mantissa requires p exponent
+1_.5         // invalid: _ must separate successive digits
+1._5         // invalid: _ must separate successive digits
+1.5_e1       // invalid: _ must separate successive digits
+1.5e_1       // invalid: _ must separate successive digits
+1.5e1_       // invalid: _ must separate successive digits
+
+0o.252       // invalid: invalid radix point in octal literal
+0b.3135      // invalid: invalid radix point in binary literal
+0b2e         // invalid: 'e' exponent requires decimal mantissa
+0b           // invalid: binary literal has no digits
+0be          // invalid: exponent has no digits
