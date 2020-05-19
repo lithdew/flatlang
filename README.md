@@ -4,7 +4,7 @@
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/lithdew/flatlang)
 [![Discord Chat](https://img.shields.io/discord/697002823123992617)](https://discord.gg/HZEbkeQ)
 
-**flatlang** is an embeddable configuration language that is made configuring large-scale codegen utilities, code bases, and applications offline/in realtime.
+**flatlang** is an embeddable configuration language that is made for configuring large-scale codegen tools, automation tools, code bases, and applications offline/in realtime.
 
 **flatlang** is heavily inspired on being scriptable and embeddable by [Google Starlark](https://github.com/bazelbuild/starlark), and being suited for code generation and data validation by [CUE](https://cuelang.org/).
 
@@ -24,15 +24,11 @@
 
 ## Design
 
-The lexer and parser design is heavily inspired by both Go's [`text/scanner`](https://golang.org/pkg/text/scanner/) package, and [`BurntSushi/toml`](https://github.com/BurntSushi/toml).
-
-The parser is LL(1), and is a recursive-descent parser which uses Pratt parsing for parsing expressions.
+The lexer and parser design is heavily inspired by both Go's [`text/scanner`](https://golang.org/pkg/text/scanner/) package, and [`BurntSushi/toml`](https://github.com/BurntSushi/toml). The parser is LL(1), and is a recursive-descent parser which uses Pratt parsing for parsing expressions.
 
 ## Testing
 
-Both the lexer and parser have manually been fuzz-tested using [go-fuzz](https://github.com/dvyukov/go-fuzz) to check that erroneous inputs are rejected, and that panics won't occur.
-
-The lexer and parser come accompanied by unit test case suites, and sum up to a total of roughly 1500 lines of code.
+Both the lexer and parser have manually been fuzz-tested using [go-fuzz](https://github.com/dvyukov/go-fuzz) to check that erroneous inputs are rejected, and that panics won't occur. Both the lexer and parser come accompanied with unit test case suites, and sum up to a total of roughly 1500 lines of code.
 
 You can manually test the lexer/parser for flatlang by running the command below. The command below assumes you have Go installed:
 
