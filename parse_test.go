@@ -1,7 +1,6 @@
 package flatlang
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"testing"
@@ -47,7 +46,7 @@ func TestParse(t *testing.T) {
 	program, err := NewParser(NewLexer(string(src))).Parse()
 	require.NoError(t, err)
 
-	spew.Dump(program)
+	//spew.Dump(program)
 	_ = program
 }
 

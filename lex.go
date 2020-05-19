@@ -426,8 +426,7 @@ func (l *Lexer) Next() Token {
 			switch r {
 			case '.':
 				r = l.next()
-				r = l.next()
-				l.backup()
+				r = l.peek()
 
 				if isDecimalRune(r) {
 					lexNumber(l, r, true)
