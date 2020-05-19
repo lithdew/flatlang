@@ -84,18 +84,14 @@ func (p UnaryParser) Parse(parser *Parser, tok Token) (Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unary expr: %w", err)
 	}
-	switch tok.Type {
-	case TokenGT, TokenGTE, TokenLT, TokenLTE:
-		switch right.(type) {
-		case IntNode, FloatNode:
-		default:
+	switch right.(type) {
+	case IntNode, FloatNode:
+	default:
+		switch tok.Type {
+		case TokenGT, TokenGTE, TokenLT, TokenLTE:
+			fallthrough
+		case TokenPlus, TokenMinus:
 			return nil, fmt.Errorf(`unary: cannot perform op (%q) against %v`, tok.Type, right)
-		}
-	case TokenPlus, TokenMinus:
-		switch right.(type) {
-		case IntNode, FloatNode:
-		default:
-			return nil, fmt.Errorf(`unary: cannot perform op (%q) against val %v`, tok.Type, right)
 		}
 	}
 	return UnaryNode{Type: tok.Type, Right: right}, nil
@@ -121,7 +117,7 @@ func (p BinaryParser) Parse(parser *Parser, left Node, tok Token) (Node, error) 
 	_, bba := left.(BinaryNode)
 	_, bbb := right.(BinaryNode)
 
-	badBIN := func(b Node) bool {
+	badBinaryOp := func(b Node) bool {
 		switch b.(BinaryNode).Type {
 		case TokenAND, TokenOR:
 			return true
@@ -130,7 +126,7 @@ func (p BinaryParser) Parse(parser *Parser, left Node, tok Token) (Node, error) 
 		}
 	}
 
-	badUN := func(b Node) bool {
+	badUnaryOp := func(b Node) bool {
 		switch b.(UnaryNode).Type {
 		case TokenGT, TokenGTE, TokenLT, TokenLTE:
 			return true
@@ -148,9 +144,9 @@ func (p BinaryParser) Parse(parser *Parser, left Node, tok Token) (Node, error) 
 			fallthrough
 		case ba || bb:
 			fallthrough
-		case ua && badUN(left) || ub && badUN(right):
+		case ua && badUnaryOp(left) || ub && badUnaryOp(right):
 			fallthrough
-		case bba && badBIN(left) || bbb && badBIN(right):
+		case bba && badBinaryOp(left) || bbb && badBinaryOp(right):
 			return nil, fmt.Errorf("binary: cannot perform op (%q) on %v and %v", tok.Type, left, right)
 		}
 	}
