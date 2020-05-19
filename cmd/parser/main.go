@@ -19,7 +19,7 @@ func check(err error) {
 func wrap(fn func() error) { check(fn()) }
 
 func main() {
-	l, err := readline.NewEx(&readline.Config{Prompt: "> "})
+	l, err := readline.NewEx(&readline.Config{Prompt: ">> "})
 	check(err)
 	defer wrap(l.Close)
 

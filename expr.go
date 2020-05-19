@@ -86,7 +86,7 @@ func (p UnaryParser) Parse(parser *Parser, tok Token) (Node, error) {
 		return nil, fmt.Errorf("unary expr: %w", err)
 	}
 	switch right.(type) {
-	case IntNode, FloatNode:
+	case IntNode, FloatNode, IdentNode:
 	default:
 		switch tok.Type {
 		case TokenGT, TokenGTE, TokenLT, TokenLTE:
@@ -105,6 +105,9 @@ func (p BinaryParser) Parse(parser *Parser, left Node, tok Token) (Node, error) 
 	if err != nil {
 		return nil, fmt.Errorf("binary expr: %w", err)
 	}
+
+	_, ia := left.(IdentNode)
+	_, ib := right.(IdentNode)
 
 	_, sa := left.(StringNode)
 	_, sb := right.(StringNode)
@@ -139,9 +142,9 @@ func (p BinaryParser) Parse(parser *Parser, left Node, tok Token) (Node, error) 
 	switch tok.Type {
 	case TokenPlus, TokenMinus, TokenMultiply, TokenDivide:
 		switch {
-		case sa && !sb:
+		case sa && !sb && !ib:
 			fallthrough
-		case !sa && sb:
+		case !sa && sb && !ia:
 			fallthrough
 		case ba || bb:
 			fallthrough
