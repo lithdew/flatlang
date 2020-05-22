@@ -167,7 +167,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		if call, ok := results[0].(methodCall); ok {
 			if len(results) > 1 {
-				call.params = results[1:]
+				call.params = append(call.params, results[1:]...)
 			}
 			return call, nil
 		}

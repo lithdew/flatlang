@@ -8,7 +8,7 @@ import (
 )
 
 func TestEval(t *testing.T) {
-	src := []byte(`items "this" 'works' 'for'; items 'multiple' 'statements';`)
+	src := []byte(`hello = items 'prefix'; hello '1'; hello '2';`)
 
 	lx, err := Lex(src, "")
 	require.NoError(t, err)
