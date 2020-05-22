@@ -53,10 +53,10 @@ CallBody
 | CallBody Atom     { $1.N1($2) }
 ;
 
-Atom: Expr %prec pipe | Map | List;
+Atom: Expr %prec pipe;
 
 Expr
-: Literal
+: Literal | Map | List
 | '(' Expr ')'  { $$ = $2 }
 
 | Expr '/' Expr { $$ = NewOpNode('/', $2).N2($1, $3) }

@@ -56,10 +56,6 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 				return nil, err
 			}
 			results = append(results, res)
-
-			//if _, ok := results[0].(func()); !ok {
-			//	return nil, fmt.Errorf("first ")
-			//}
 		}
 		return results, nil
 	case BoolNode:
@@ -100,6 +96,27 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			return nil, fmt.Errorf("failed to eval float: %w", err)
 		}
 		return val, nil
+	case ListNode:
+		vals := make([]interface{}, 0, len(n.Nodes))
+		for _, node := range n.Nodes {
+			val, err := e.eval(node)
+			if err != nil {
+				return nil, err
+			}
+			vals = append(vals, val)
+		}
+		return vals, nil
+	case MapNode:
+		vals := make(map[string]interface{}, len(n.Nodes)/2)
+		for i := 0; i < len(n.Nodes); i += 2 {
+			ident := n.Nodes[i].Val(e.lx)
+			val, err := e.eval(n.Nodes[i+1])
+			if err != nil {
+				return nil, err
+			}
+			vals[ident] = val
+		}
+		return vals, nil
 	case OpNode + negate:
 		rhs, err := e.eval(n.Nodes[0])
 		if err != nil {
@@ -126,6 +143,11 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 
 		switch lhs := lhs.(type) {
+		case []interface{}:
+			switch rhs := rhs.(type) {
+			case []interface{}:
+				return append(lhs, rhs...), nil
+			}
 		case string:
 			switch r := rhs.(type) {
 			case string:
@@ -250,7 +272,7 @@ func Eval(lx *Lexer, n *Node) (interface{}, error) {
 }
 
 func TestEval(t *testing.T) {
-	src := []byte(`test = 432 + (291 * (26 - 32.0)); hello = test;`)
+	src := []byte(`test = [432 + (291 * (26 - 32.0)), 'hello world!']; hello = test + ['test!']; maps = {key1: test, key: hello};`)
 
 	lx, err := Lex(src, "")
 	require.NoError(t, err)
