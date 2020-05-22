@@ -47,12 +47,22 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		return nil, fmt.Errorf("unknown symbol '%v'", sym)
 	case VarNode:
-		lhs := n.Nodes[0].Val(e.lx)
-		rhs, err := e.eval(n.Nodes[1])
-		if err != nil {
-			return nil, fmt.Errorf("failed to eval '%v'", lhs)
+		sym := n.Nodes[0].Val(e.lx)
+
+		results := make([]interface{}, 0, len(n.Nodes[1:]))
+		for _, node := range n.Nodes[1:] {
+			res, err := e.eval(node)
+			if err != nil {
+				return nil, fmt.Errorf("failed to eval '%v': %w", sym, err)
+			}
+			results = append(results, res)
 		}
-		e.sym[lhs] = rhs
+
+		if len(results) == 1 {
+			e.sym[sym] = results[0]
+		} else {
+			e.sym[sym] = results
+		}
 		return nil, nil
 	case ValNode:
 		if len(n.Nodes) == 1 {
