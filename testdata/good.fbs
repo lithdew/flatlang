@@ -1,0 +1,8 @@
+handler = what "hello"|(world + ("what" + "test")) world;
+handler = get "/item/:id" > require offset >= 100 & < 1000 > set "hello"|>=3;
+helper = require true > set {hello: false};
+get "/item/:id" > require offset >= 100 & < 1000 > set "hello"|>=3;
+hello [1, 2, 3] > a ["test"] true;
+this {a: >=1, b: 4} > works {c: false, d: 30.0} false;
+the [1, 2, "test"] > works {c: false, d: 30.0} false; a b c;
+[1, 2, 3, "hello", 4.3];

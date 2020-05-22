@@ -15,7 +15,7 @@ expanded_form = sql {db: db, query: 'select * from posts limit :limit offset :of
 // Pagination helper.
 
 paginate =
-    > default {offset: 0, limit: 1024}
+    default {offset: 0, limit: 1024}
     > require {offset: >=0, limit: >=0 & <=1024}
     > set ['limit', 'offset'];
 

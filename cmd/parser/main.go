@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"github.com/chzyer/readline"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/lithdew/flatlang"
+	"github.com/picmonkey/go-spew/spew"
 	"io"
 	"log"
 	"strings"

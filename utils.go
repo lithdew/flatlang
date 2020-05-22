@@ -1,12 +1,32 @@
 package flatlang
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
 
-func unquote(s string) (string, error) {
+type Stack [][2]int
+
+func (s *Stack) Push(a, b int) {
+	*s = append(*s, [2]int{a, b})
+}
+
+func (s *Stack) Pop() (int, int) {
+	val := (*s)[len(*s)-1]
+	*s = (*s)[:len(*s)-1]
+	return val[0], val[1]
+}
+
+func Repr(sym int) string {
+	if sym >= yyPrivate-1 && sym < yyPrivate+len(yyToknames) {
+		return yyToknames[sym-yyPrivate+1]
+	}
+	return fmt.Sprintf("%c", sym)
+}
+
+func Unquote(s string) (string, error) {
 	n := len(s)
 	if n < 2 {
 		return "", strconv.ErrSyntax
@@ -22,7 +42,6 @@ func unquote(s string) (string, error) {
 			return "", strconv.ErrSyntax
 		}
 		if strings.ContainsRune(s, '\r') {
-			// -1 because we know there is at least one \r to remove.
 			buf := make([]byte, 0, len(s)-1)
 			for i := 0; i < len(s); i++ {
 				if s[i] != '\r' {
@@ -48,8 +67,9 @@ func unquote(s string) (string, error) {
 		}
 	}
 
-	var runeTmp [utf8.UTFMax]byte
-	buf := make([]byte, 0, 3*len(s)/2) // Try to avoid more allocations.
+	var tmp [utf8.UTFMax]byte
+
+	buf := make([]byte, 0, 3*len(s)/2)
 	for len(s) > 0 {
 		c, multibyte, ss, err := strconv.UnquoteChar(s, quote)
 		if err != nil {
@@ -59,9 +79,10 @@ func unquote(s string) (string, error) {
 		if c < utf8.RuneSelf || !multibyte {
 			buf = append(buf, byte(c))
 		} else {
-			n := utf8.EncodeRune(runeTmp[:], c)
-			buf = append(buf, runeTmp[:n]...)
+			n := utf8.EncodeRune(tmp[:], c)
+			buf = append(buf, tmp[:n]...)
 		}
 	}
+
 	return string(buf), nil
 }

@@ -24,13 +24,16 @@
 
 ## Design
 
-The lexer and parser design is heavily inspired by both Go's [`text/scanner`](https://golang.org/pkg/text/scanner/) package, and [`BurntSushi/toml`](https://github.com/BurntSushi/toml). The parser is LL(1), and is a recursive-descent parser which uses Pratt parsing for parsing expressions.
+Both the lexer and parser are generated using Ragel and Yacc.
 
-## Testing
+You can manually test the lexer/parser for flatlang by running either one of the following commands below. The command below assumes you have Go installed:
 
-Both the lexer and parser have manually been fuzz-tested using [go-fuzz](https://github.com/dvyukov/go-fuzz) to check that erroneous inputs are rejected, and that panics won't occur. Both the lexer and parser come accompanied with unit test case suites, and sum up to a total of roughly 1500 lines of code.
+### Lexer 
+```
+$ cat testdata/test.fbs | go run github.com/lithdew/flatlang/cmd/lexer
+```
 
-You can manually test the lexer/parser for flatlang by running the command below. The command below assumes you have Go installed:
+### Parser
 
 ```
 $ go run github.com/lithdew/flatlang/cmd/parser
