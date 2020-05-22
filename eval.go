@@ -3,16 +3,18 @@ package flatlang
 import (
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	"reflect"
 	"strconv"
 )
 
 type Evaluator struct {
-	lx  *Lexer
-	sym map[string]interface{}
+	lx       *Lexer
+	sym      map[string]interface{}
+	builtins map[string]reflect.Value
 }
 
 func Eval(lx *Lexer, n *Node) (interface{}, error) {
-	e := newEval(lx)
+	e := NewEval(lx)
 	res, err := e.eval(n)
 	if err != nil {
 		return nil, err
@@ -23,8 +25,78 @@ func Eval(lx *Lexer, n *Node) (interface{}, error) {
 	return res, nil
 }
 
-func newEval(lx *Lexer) *Evaluator {
-	return &Evaluator{lx: lx, sym: make(map[string]interface{})}
+func NewEval(lx *Lexer) *Evaluator {
+	return &Evaluator{
+		lx:       lx,
+		sym:      make(map[string]interface{}),
+		builtins: make(map[string]reflect.Value),
+	}
+}
+
+var errType = reflect.TypeOf((*error)(nil)).Elem()
+
+func (e *Evaluator) register(name string, fn interface{}) error {
+	v := reflect.ValueOf(fn)
+	if v.Kind() != reflect.Func {
+		return fmt.Errorf("%q is not a func", name)
+	}
+
+	t := v.Type()
+
+	if t.NumOut() > 1 {
+		return fmt.Errorf("methods may only return an error at most")
+	}
+	if t.NumOut() == 1 && !t.Out(0).Implements(errType) {
+		return fmt.Errorf("return val of method is expected to be an error, but got %v", t.Out(0))
+	}
+
+	e.builtins[name] = v
+	return nil
+}
+
+func (e *Evaluator) dispatch(name string, params ...interface{}) error {
+	v, exists := e.builtins[name]
+	if !exists {
+		return fmt.Errorf("method %q not registered", name)
+	}
+
+	t := v.Type()
+
+	if !t.IsVariadic() && t.NumIn() != len(params) {
+		return fmt.Errorf("%s: expected %d params, got %d params", name, t.NumIn(), len(params))
+	}
+
+	var pvs []reflect.Value
+
+	if len(params) > 0 {
+		pvs = make([]reflect.Value, 0, len(params))
+
+		for i := 0; i < len(params); i++ {
+			idx := i
+			if idx >= t.NumIn() {
+				idx = t.NumIn() - 1
+			}
+
+			pv, iv := reflect.ValueOf(params[i]), t.In(idx)
+			if pt := pv.Type(); !t.IsVariadic() && !pt.AssignableTo(iv) {
+				return fmt.Errorf("%s: param %d (%v) is not assignable to in type %v", name, i, pt, iv)
+			}
+			pvs = append(pvs, pv)
+		}
+	}
+
+	out := v.Call(pvs)
+
+	if len(out) == 1 && out[0].Type().Implements(errType) {
+		return out[0].Interface().(error)
+	}
+
+	return nil
+}
+
+type methodCall struct {
+	name   string
+	params []interface{}
 }
 
 func (e *Evaluator) eval(n *Node) (interface{}, error) {
@@ -36,14 +108,25 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			results = append(results, res)
+
+			switch val := res.(type) {
+			case methodCall:
+				if err := e.dispatch(val.name, val.params...); err != nil {
+					return nil, fmt.Errorf("failed to call method %q: %w", val.name, err)
+				}
+				results = append(results, nil)
+			default:
+				results = append(results, res)
+			}
 		}
 		return results, nil
 	case IdentNode:
 		sym := n.Val(e.lx)
-		val, recorded := e.sym[sym]
-		if recorded {
+		if val, recorded := e.sym[sym]; recorded {
 			return val, nil
+		}
+		if _, exists := e.builtins[sym]; exists {
+			return methodCall{name: sym}, nil
 		}
 		return nil, fmt.Errorf("unknown symbol '%v'", sym)
 	case VarNode:
@@ -81,6 +164,15 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			default:
 				results = append(results, res)
 			}
+		}
+		if call, ok := results[0].(methodCall); ok {
+			if len(results) > 1 {
+				call.params = results[1:]
+			}
+			return call, nil
+		}
+		if len(results) > 1 {
+			return nil, fmt.Errorf("multiple values may not exist in a single statement unless it is a method call: got %v", results)
 		}
 		return results, nil
 	case BoolNode:

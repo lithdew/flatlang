@@ -8,7 +8,7 @@ import (
 )
 
 func TestEval(t *testing.T) {
-	src := []byte("hi = 123 + 4.0; there = `this is a ${hi + 5} test`;")
+	src := []byte(`items "this" 'works' 'for'; items 'multiple' 'statements';`)
 
 	lx, err := Lex(src, "")
 	require.NoError(t, err)
@@ -18,10 +18,22 @@ func TestEval(t *testing.T) {
 
 	fmt.Printf("Evaluating %q.\n\n", src[:len(src)-1])
 
-	res, err := Eval(lx, px.Result)
+	ex := NewEval(lx)
+
+	printFn := func(params ...interface{}) {
+		fmt.Println(params...)
+	}
+	require.NoError(t, ex.register("print", printFn))
+
+	var allItems []string
+	itemsFn := func(items ...string) {
+		allItems = append(allItems, items...)
+	}
+	require.NoError(t, ex.register("items", itemsFn))
+
+	res, err := ex.eval(px.Result)
 	require.NoError(t, err)
+	_ = res
 
-	fmt.Println()
-
-	spew.Dump(res)
+	spew.Dump(allItems)
 }
