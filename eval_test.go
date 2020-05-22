@@ -1,14 +1,44 @@
 package flatlang
 
 import (
+	"errors"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
+func TestCurry(t *testing.T) {
+	var report []string
+
+	fn := func(items ...string) error {
+		if len(items) == 0 {
+			return errors.New("must specify at least one string param to 'item'")
+		}
+		report = append(report, items...)
+		return nil
+	}
+
+	src := []byte(`hello = items 'test' > items 'test_two'; items 'start' > hello > items 'end' > hello '1';`)
+
+	lx, err := Lex(src, "")
+	require.NoError(t, err)
+
+	px, err := Parse(lx)
+	require.NoError(t, err)
+
+	ex := NewEval(lx)
+
+	require.NoError(t, ex.register("items", fn))
+
+	_, err = ex.eval(px.Result)
+	require.NoError(t, err)
+
+	require.EqualValues(t, []string{"start", "test", "test_two", "end", "test", "test_two", "1"}, report)
+}
+
 func TestEval(t *testing.T) {
-	src := []byte(`hello = items 'prefix'; hello '1'; hello '2';`)
+	src := []byte(`dbg = print '[A]' > print '[B]'; print 'start' > dbg 'A test message!' > print 'end'; print (1 + 2 - 3) 34.5e4;`)
 
 	lx, err := Lex(src, "")
 	require.NoError(t, err)
@@ -25,15 +55,10 @@ func TestEval(t *testing.T) {
 	}
 	require.NoError(t, ex.register("print", printFn))
 
-	var allItems []string
-	itemsFn := func(items ...string) {
-		allItems = append(allItems, items...)
-	}
-	require.NoError(t, ex.register("items", itemsFn))
-
 	res, err := ex.eval(px.Result)
 	require.NoError(t, err)
-	_ = res
 
-	spew.Dump(allItems)
+	fmt.Println()
+
+	spew.Dump(res)
 }

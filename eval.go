@@ -62,8 +62,14 @@ func (e *Evaluator) dispatch(name string, params ...interface{}) error {
 
 	t := v.Type()
 
-	if !t.IsVariadic() && t.NumIn() != len(params) {
-		return fmt.Errorf("%s: expected %d params, got %d params", name, t.NumIn(), len(params))
+	if t.IsVariadic() {
+		if len(params) < t.NumIn()-1 {
+			return fmt.Errorf("%s: expected at least %d param(s), got %d param(s)", name, t.NumIn()-1, len(params))
+		}
+	} else {
+		if len(params) != t.NumIn() {
+			return fmt.Errorf("%s: expected exactly %d param(s), got %d param(s)", name, t.NumIn()-1, len(params))
+		}
 	}
 
 	var pvs []reflect.Value
@@ -71,23 +77,40 @@ func (e *Evaluator) dispatch(name string, params ...interface{}) error {
 	if len(params) > 0 {
 		pvs = make([]reflect.Value, 0, len(params))
 
-		for i := 0; i < len(params); i++ {
-			idx := i
-			if idx >= t.NumIn() {
-				idx = t.NumIn() - 1
+		if t.IsVariadic() {
+			i := 0
+
+			for ; i < t.NumIn()-1; i++ {
+				pv, it := reflect.ValueOf(params[i]), t.In(i)
+				if !pv.Type().AssignableTo(it) {
+					return fmt.Errorf("%s: arg %d (%v) is not assignable to %v", name, i, pv.Type(), it)
+				}
+				pvs = append(pvs, pv)
 			}
 
-			pv, iv := reflect.ValueOf(params[i]), t.In(idx)
-			if pt := pv.Type(); !t.IsVariadic() && !pt.AssignableTo(iv) {
-				return fmt.Errorf("%s: param %d (%v) is not assignable to in type %v", name, i, pt, iv)
+			vt := t.In(t.NumIn() - 1).Elem()
+
+			for ; i < len(params); i++ {
+				pv := reflect.ValueOf(params[i])
+				if !pv.Type().AssignableTo(vt) {
+					return fmt.Errorf("%s: var arg %d (%v) is not assignable to %v", name, i, pv.Type(), vt)
+				}
+				pvs = append(pvs, pv)
 			}
-			pvs = append(pvs, pv)
+		} else {
+			for i := 0; i < t.NumIn(); i++ {
+				pv, it := reflect.ValueOf(params[i]), t.In(i)
+				if !pv.Type().AssignableTo(it) {
+					return fmt.Errorf("%s: arg %d (%v) is not assignable to %v", name, i, pv.Type(), it)
+				}
+				pvs = append(pvs, pv)
+			}
 		}
 	}
 
 	out := v.Call(pvs)
 
-	if len(out) == 1 && out[0].Type().Implements(errType) {
+	if len(out) == 1 && out[0].Type().Implements(errType) && !out[0].IsNil() {
 		return out[0].Interface().(error)
 	}
 
@@ -109,10 +132,16 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 				return nil, err
 			}
 
-			switch val := res.(type) {
+			switch v := res.(type) {
 			case methodCall:
-				if err := e.dispatch(val.name, val.params...); err != nil {
-					return nil, fmt.Errorf("failed to call method %q: %w", val.name, err)
+				if err := e.dispatch(v.name, v.params...); err != nil {
+					return nil, fmt.Errorf("failed to call method %q: %w", v.name, err)
+				}
+			case []methodCall:
+				for _, c := range v {
+					if err := e.dispatch(c.name, c.params...); err != nil {
+						return nil, fmt.Errorf("failed to call method %q: %w", c.name, err)
+					}
 				}
 				results = append(results, nil)
 			default:
@@ -131,47 +160,60 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		return nil, fmt.Errorf("unknown symbol '%v'", sym)
 	case VarNode:
 		sym := n.Nodes[0].Val(e.lx)
+		rhs := n.Nodes[1:]
 
-		results := make([]interface{}, 0, len(n.Nodes[1:]))
+		if len(rhs) == 1 {
+			res, err := e.eval(rhs[0])
+			if err != nil {
+				return nil, fmt.Errorf("failed to eval '%v': %w", sym, err)
+			}
+			e.sym[sym] = res
+		}
+
+		calls := make([]methodCall, 0, len(rhs))
 		for _, node := range n.Nodes[1:] {
 			res, err := e.eval(node)
 			if err != nil {
 				return nil, fmt.Errorf("failed to eval '%v': %w", sym, err)
 			}
-			results = append(results, res)
+
+			switch res := res.(type) {
+			case []methodCall:
+				calls = append(calls, res...)
+			default:
+				return nil, fmt.Errorf("got unknown type while eval %q's val: %w", sym, err)
+			}
 		}
 
-		if len(results) == 1 {
-			e.sym[sym] = results[0]
-		} else {
-			e.sym[sym] = results
-		}
+		e.sym[sym] = calls
+
 		return nil, nil
 	case ValNode:
 		if len(n.Nodes) == 1 {
 			return e.eval(n.Nodes[0])
 		}
 
-		results := make([]interface{}, 0, len(n.Nodes))
+		results := make([]methodCall, 0, len(n.Nodes))
 		for i := 0; i < len(n.Nodes); i++ {
 			res, err := e.eval(n.Nodes[i])
 			if err != nil {
 				return nil, err
 			}
+
 			switch res := res.(type) {
-			case []interface{}:
+			case methodCall:
+				results = append(results, res)
+			case []methodCall:
 				results = append(results, res...)
 			default:
-				results = append(results, res)
+				if len(results) == 0 {
+					return nil, fmt.Errorf("multiple values may not exist in a single statement unless it is a method call: got %#v", res)
+				}
+				results[len(results)-1].params = append(results[len(results)-1].params, res)
 			}
 		}
-		if call, ok := results[0].(methodCall); ok {
-			if len(results) > 1 {
-				call.params = append(call.params, results[1:]...)
-			}
-			return call, nil
-		}
-		return nil, fmt.Errorf("multiple values may not exist in a single statement unless it is a method call: got %v", results)
+
+		return results, nil
 	case BoolNode:
 		val := n.Val(e.lx)
 		switch val {
