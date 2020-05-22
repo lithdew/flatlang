@@ -112,11 +112,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 	if r.file == nil {
 		r.file = fileset.AddFile("(string)", -1, len(data))
 	}
-	if r.Data == nil {
-		r.Data = data
-	} else {
-		r.Data = append(r.Data, data...)
-	}
+	r.Data = data
 	nostack := func() bool {
 		if top != len(stack) {
 			return false

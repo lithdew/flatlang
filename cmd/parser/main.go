@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/chzyer/readline"
 	"github.com/lithdew/flatlang"
-	"github.com/picmonkey/go-spew/spew"
 	"io"
 	"log"
 	"strings"
@@ -24,6 +24,7 @@ func main() {
 	defer wrap(l.Close)
 
 	log.SetOutput(l.Stderr())
+
 	for {
 		line, err := l.Readline()
 		if err != nil {
@@ -40,12 +41,13 @@ func main() {
 			break
 		}
 
-		parser := flatlang.NewParser(flatlang.NewLexer(line))
-
-		program, err := parser.Parse()
+		lx, err := flatlang.Lex([]byte(line), "")
 		if err == nil {
-			spew.Dump(program)
-			continue
+			px, err := flatlang.Parse(lx)
+			if err == nil {
+				fmt.Println(px.Format())
+				continue
+			}
 		}
 
 		log.Println(err)

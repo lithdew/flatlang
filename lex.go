@@ -39,11 +39,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 	if r.file == nil {
 		r.file = fileset.AddFile("(string)", -1, len(data))
 	}
-	if r.Data == nil {
-		r.Data = data
-	} else {
-		r.Data = append(r.Data, data...)
-	}
+	r.Data = data
 	nostack := func() bool {
 		if top != len(stack) {
 			return false
@@ -79,7 +75,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 		}
 	}
 
-	// line 89 "lex.go"
+	// line 85 "lex.go"
 	{
 		if p == pe {
 			goto _test_eof
@@ -517,7 +513,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 
 		ts = p
 
-		// line 407 "lex.go"
+		// line 403 "lex.go"
 		switch data[p] {
 		case 0:
 			goto tr15
@@ -589,7 +585,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof11
 		}
 	st_case_11:
-		// line 479 "lex.go"
+		// line 475 "lex.go"
 		if data[p] == 46 {
 			goto st1
 		}
@@ -614,7 +610,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof12
 		}
 	st_case_12:
-		// line 504 "lex.go"
+		// line 500 "lex.go"
 		switch data[p] {
 		case 69:
 			goto st2
@@ -702,7 +698,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof17
 		}
 	st_case_17:
-		// line 592 "lex.go"
+		// line 588 "lex.go"
 		switch data[p] {
 		case 42:
 			goto st4
@@ -805,7 +801,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof23
 		}
 	st_case_23:
-		// line 695 "lex.go"
+		// line 691 "lex.go"
 		if data[p] == 95 {
 			goto tr29
 		}
@@ -1028,7 +1024,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 
 		ts = p
 
-		// line 909 "lex.go"
+		// line 905 "lex.go"
 		switch data[p] {
 		case 39:
 			goto tr53
@@ -1050,7 +1046,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof31
 		}
 	st_case_31:
-		// line 931 "lex.go"
+		// line 927 "lex.go"
 		switch data[p] {
 		case 39:
 			goto tr55
@@ -1126,7 +1122,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 
 		ts = p
 
-		// line 998 "lex.go"
+		// line 994 "lex.go"
 		switch data[p] {
 		case 34:
 			goto tr56
@@ -1148,7 +1144,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof33
 		}
 	st_case_33:
-		// line 1020 "lex.go"
+		// line 1016 "lex.go"
 		switch data[p] {
 		case 34:
 			goto tr58
@@ -1260,7 +1256,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 
 		ts = p
 
-		// line 1112 "lex.go"
+		// line 1108 "lex.go"
 		switch data[p] {
 		case 36:
 			goto st36
@@ -1284,7 +1280,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 			goto _test_eof35
 		}
 	st_case_35:
-		// line 1136 "lex.go"
+		// line 1132 "lex.go"
 		switch data[p] {
 		case 36:
 			goto st8
@@ -1515,7 +1511,7 @@ func lexData(data []byte, r *Lexer) (err error) {
 		}
 	}
 
-	// line 156 "lex.rl"
+	// line 152 "lex.rl"
 
 	if p != eof {
 		err = r.Errorf("precedes the token that failed to lex")

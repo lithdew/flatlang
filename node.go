@@ -38,6 +38,8 @@ var NodeString = [...]string{
 	OpNode + negate: "-",
 	OpNode + '+':    "+",
 	OpNode + '-':    "-",
+	OpNode + '*':    "*",
+	OpNode + '/':    "/",
 	OpNode + '>':    ">",
 	OpNode + '<':    "<",
 	OpNode + gte:    ">=",
@@ -68,6 +70,10 @@ func (n *Node) N1(n0 *Node) *Node         { n.Nodes = append(n.Nodes, n0); retur
 func (n *Node) N2(n0, n1 *Node) *Node     { n.Nodes = append(n.Nodes, n0, n1); return n }
 func (n *Node) N3(n0, n1, n2 *Node) *Node { n.Nodes = append(n.Nodes, n0, n1, n2); return n }
 
+func (n Node) Val(lx *Lexer) string {
+	return string(lx.Data[lx.Tokens[n.Tokens[0]].Pos:lx.Tokens[n.Tokens[0]].End])
+}
+
 func (n Node) Format(lx *Lexer) string {
 	buf := n.Type.String()
 	if buf == "" {
@@ -78,7 +84,7 @@ func (n Node) Format(lx *Lexer) string {
 	}
 
 	if len(n.Tokens) > 0 {
-		repr := string(lx.Data[lx.Tokens[n.Tokens[0]].Pos:lx.Tokens[n.Tokens[0]].End])
+		repr := n.Val(lx)
 
 		switch n.Type {
 		case IdentNode:
