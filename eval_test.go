@@ -82,6 +82,25 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			res += txt
 		}
 		return res, nil
+	case InterpNode:
+		val, err := e.eval(n.Nodes[0])
+		if err != nil {
+			return nil, err
+		}
+		switch val := val.(type) {
+		case string:
+			return val, nil
+		case int64:
+			return strconv.FormatInt(val, 10), nil
+		case float64:
+			return strconv.FormatFloat(val, 'g', -1, 64), nil
+		case bool:
+			if val {
+				return "true", nil
+			}
+			return "false", nil
+		}
+		return nil, fmt.Errorf("unable to interpolate '%v' into a string", val)
 	case TextNode:
 		return n.Val(e.lx), nil
 	case IntNode:
@@ -272,7 +291,7 @@ func Eval(lx *Lexer, n *Node) (interface{}, error) {
 }
 
 func TestEval(t *testing.T) {
-	src := []byte(`test = [432 + (291 * (26 - 32.0)), 'hello world!']; hello = test + ['test!']; maps = {key1: test, key: hello};`)
+	src := []byte("hi = 123 + 4.0; there = `this is a ${hi + 5} test`;")
 
 	lx, err := Lex(src, "")
 	require.NoError(t, err)
