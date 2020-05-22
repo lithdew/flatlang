@@ -171,10 +171,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			}
 			return call, nil
 		}
-		if len(results) > 1 {
-			return nil, fmt.Errorf("multiple values may not exist in a single statement unless it is a method call: got %v", results)
-		}
-		return results, nil
+		return nil, fmt.Errorf("multiple values may not exist in a single statement unless it is a method call: got %v", results)
 	case BoolNode:
 		val := n.Val(e.lx)
 		switch val {
