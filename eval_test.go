@@ -29,7 +29,26 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			results = append(results, res)
 		}
 		return results, nil
+	case IdentNode:
+		sym := n.Val(e.lx)
+		val, recorded := e.sym[sym]
+		if recorded {
+			return val, nil
+		}
+		return nil, fmt.Errorf("unknown symbol '%v'", sym)
+	case VarNode:
+		lhs := n.Nodes[0].Val(e.lx)
+		rhs, err := e.eval(n.Nodes[1])
+		if err != nil {
+			return nil, fmt.Errorf("failed to eval '%v'", lhs)
+		}
+		e.sym[lhs] = rhs
+		return nil, nil
 	case ValNode:
+		if len(n.Nodes) == 1 {
+			return e.eval(n.Nodes[0])
+		}
+
 		results := make([]interface{}, 0, len(n.Nodes))
 		for i := 0; i < len(n.Nodes); i++ {
 			res, err := e.eval(n.Nodes[i])
@@ -38,14 +57,6 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			}
 			results = append(results, res)
 
-			//if i != 0 {
-			//	continue
-			//}
-			//
-			//if len(results) == 1 {
-			//	continue
-			//}
-			//
 			//if _, ok := results[0].(func()); !ok {
 			//	return nil, fmt.Errorf("first ")
 			//}
@@ -90,149 +101,156 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		return val, nil
 	case OpNode + negate:
-		r, err := e.eval(n.Nodes[0])
+		rhs, err := e.eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
 
-		switch val := r.(type) {
+		switch rhs := rhs.(type) {
 		case int64:
-			return -val, nil
+			return -rhs, nil
 		case float64:
-			return -val, nil
+			return -rhs, nil
 		}
 
 		return nil, fmt.Errorf("unable to negate '%v'", n.Type)
 	case OpNode + '+':
-		l, err := e.eval(n.Nodes[0])
+		lhs, err := e.eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		r, err := e.eval(n.Nodes[1])
+		rhs, err := e.eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
 
-		switch l := l.(type) {
+		switch lhs := lhs.(type) {
 		case string:
-			switch r := r.(type) {
+			switch r := rhs.(type) {
 			case string:
-				return l + r, nil
+				return lhs + r, nil
 			}
 		case int64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l + r, nil
+				return lhs + rhs, nil
 			case float64:
-				return float64(l) + r, nil
+				return float64(lhs) + rhs, nil
 			}
 		case float64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l + float64(r), nil
+				return lhs + float64(rhs), nil
 			case float64:
-				return l + r, nil
+				return lhs + rhs, nil
 			}
 		}
 
-		return nil, fmt.Errorf("cannot eval '%v' + '%v'", l, r)
+		return nil, fmt.Errorf("cannot eval '%v' + '%v'", lhs, rhs)
 	case OpNode + '-':
-		l, err := e.eval(n.Nodes[0])
+		lhs, err := e.eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		r, err := e.eval(n.Nodes[1])
+		rhs, err := e.eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
 
-		switch l := l.(type) {
+		switch lhs := lhs.(type) {
 		case int64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l - r, nil
+				return lhs - rhs, nil
 			case float64:
-				return float64(l) - r, nil
+				return float64(lhs) - rhs, nil
 			}
 		case float64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l - float64(r), nil
+				return lhs - float64(rhs), nil
 			case float64:
-				return l - r, nil
+				return lhs - rhs, nil
 			}
 		}
 
-		return nil, fmt.Errorf("cannot eval '%v' - '%v'", l, r)
+		return nil, fmt.Errorf("cannot eval '%v' - '%v'", lhs, rhs)
 	case OpNode + '*':
-		l, err := e.eval(n.Nodes[0])
+		lhs, err := e.eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		r, err := e.eval(n.Nodes[1])
+		rhs, err := e.eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
 
-		switch l := l.(type) {
+		switch lhs := lhs.(type) {
 		case int64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l * r, nil
+				return lhs * rhs, nil
 			case float64:
-				return float64(l) * r, nil
+				return float64(lhs) * rhs, nil
 			}
 		case float64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l * float64(r), nil
+				return lhs * float64(rhs), nil
 			case float64:
-				return l * r, nil
+				return lhs * rhs, nil
 			}
 		}
-		return nil, fmt.Errorf("cannot eval '%v' * '%v'", l, r)
+		return nil, fmt.Errorf("cannot eval '%v' * '%v'", lhs, rhs)
 	case OpNode + '/':
-		l, err := e.eval(n.Nodes[0])
+		lhs, err := e.eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		r, err := e.eval(n.Nodes[1])
+		rhs, err := e.eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
 
-		switch l := l.(type) {
+		switch lhs := lhs.(type) {
 		case int64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l / r, nil
+				return lhs / rhs, nil
 			case float64:
-				return float64(l) / r, nil
+				return float64(lhs) / rhs, nil
 			}
 		case float64:
-			switch r := r.(type) {
+			switch rhs := rhs.(type) {
 			case int64:
-				return l / float64(r), nil
+				return lhs / float64(rhs), nil
 			case float64:
-				return l / r, nil
+				return lhs / rhs, nil
 			}
 		}
-		return nil, fmt.Errorf("cannot eval '%v' / '%v'", l, r)
+		return nil, fmt.Errorf("cannot eval '%v' / '%v'", lhs, rhs)
 	}
 
-	panic(fmt.Sprintf("unknown node type '%v'", n.Type))
+	spew.Dump(n)
+	panic(fmt.Sprintf("unknown node type '%v(%d)'", n.Type, n.Type))
 }
 
 func Eval(lx *Lexer, n *Node) (interface{}, error) {
-	return newEval(lx).eval(n)
+	e := newEval(lx)
+	res, err := e.eval(n)
+	if err != nil {
+		return nil, err
+	}
+	spew.Dump(e.sym)
+	return res, nil
 }
 
 func TestEval(t *testing.T) {
-	src := []byte(`432 + (291 * (26 - 32.0));`)
+	src := []byte(`test = 432 + (291 * (26 - 32.0)); hello = test;`)
 
 	lx, err := Lex(src, "")
 	require.NoError(t, err)
@@ -240,9 +258,12 @@ func TestEval(t *testing.T) {
 	px, err := Parse(lx)
 	require.NoError(t, err)
 
+	fmt.Printf("Evaluating %q.\n\n", src[:len(src)-1])
+
 	res, err := Eval(lx, px.Result)
 	require.NoError(t, err)
 
-	fmt.Printf("Evaluating %q.\n\n", src[:len(src)-1])
+	fmt.Println()
+
 	spew.Dump(res)
 }
