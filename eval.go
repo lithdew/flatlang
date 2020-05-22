@@ -75,7 +75,12 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			results = append(results, res)
+			switch res := res.(type) {
+			case []interface{}:
+				results = append(results, res...)
+			default:
+				results = append(results, res)
+			}
 		}
 		return results, nil
 	case BoolNode:
