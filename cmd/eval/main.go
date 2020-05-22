@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/chzyer/readline"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/lithdew/flatlang"
 	"io"
 	"log"
@@ -55,10 +55,20 @@ func main() {
 		if err == nil {
 			px, err = flatlang.Parse(lx)
 			if err == nil {
-				res, err = flatlang.Eval(lx, px.Result)
+				ex := flatlang.NewEval(lx)
+				ex.RegisterBuiltin("print", func(items ...interface{}) {
+					fmt.Println(items...)
+				})
+				ex.RegisterBuiltin("printf", func(format string, items ...interface{}) {
+					fmt.Printf(format, items...)
+				})
+				res, err = ex.Eval(px.Result)
 				if err == nil {
-					if len(res.([]interface{})) > 0 {
-						spew.Dump(res)
+					vals, ok := res.([]interface{})
+					if ok && len(vals) > 0 {
+						for _, val := range vals {
+							fmt.Printf("%v\n", val)
+						}
 					}
 					continue
 				}

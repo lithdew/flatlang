@@ -15,7 +15,7 @@ type Evaluator struct {
 
 func Eval(lx *Lexer, n *Node) (interface{}, error) {
 	e := NewEval(lx)
-	res, err := e.eval(n)
+	res, err := e.Eval(n)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func NewEval(lx *Lexer) *Evaluator {
 
 var errType = reflect.TypeOf((*error)(nil)).Elem()
 
-func (e *Evaluator) register(name string, fn interface{}) error {
+func (e *Evaluator) RegisterBuiltin(name string, fn interface{}) error {
 	v := reflect.ValueOf(fn)
 	if v.Kind() != reflect.Func {
 		return fmt.Errorf("%q is not a func", name)
@@ -122,12 +122,12 @@ type methodCall struct {
 	params []interface{}
 }
 
-func (e *Evaluator) eval(n *Node) (interface{}, error) {
+func (e *Evaluator) Eval(n *Node) (interface{}, error) {
 	switch n.Type {
 	case ProgramNode:
 		results := make([]interface{}, 0, len(n.Nodes))
 		for _, node := range n.Nodes {
-			res, err := e.eval(node)
+			res, err := e.Eval(node)
 			if err != nil {
 				return nil, err
 			}
@@ -163,16 +163,17 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		rhs := n.Nodes[1:]
 
 		if len(rhs) == 1 {
-			res, err := e.eval(rhs[0])
+			res, err := e.Eval(rhs[0])
 			if err != nil {
 				return nil, fmt.Errorf("failed to eval '%v': %w", sym, err)
 			}
 			e.sym[sym] = res
+			return nil, nil
 		}
 
 		calls := make([]methodCall, 0, len(rhs))
 		for _, node := range n.Nodes[1:] {
-			res, err := e.eval(node)
+			res, err := e.Eval(node)
 			if err != nil {
 				return nil, fmt.Errorf("failed to eval '%v': %w", sym, err)
 			}
@@ -190,12 +191,12 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		return nil, nil
 	case ValNode:
 		if len(n.Nodes) == 1 {
-			return e.eval(n.Nodes[0])
+			return e.Eval(n.Nodes[0])
 		}
 
 		results := make([]methodCall, 0, len(n.Nodes))
 		for i := 0; i < len(n.Nodes); i++ {
-			res, err := e.eval(n.Nodes[i])
+			res, err := e.Eval(n.Nodes[i])
 			if err != nil {
 				return nil, err
 			}
@@ -207,7 +208,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 				results = append(results, res...)
 			default:
 				if len(results) == 0 {
-					return nil, fmt.Errorf("multiple values may not exist in a single statement unless it is a method call: got %#v", res)
+					return nil, fmt.Errorf("multiple values may not exist in a single statement unless they serve as parameters for a a method call")
 				}
 				results[len(results)-1].params = append(results[len(results)-1].params, res)
 			}
@@ -227,7 +228,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		res := ""
 
 		for _, node := range n.Nodes {
-			val, err := e.eval(node)
+			val, err := e.Eval(node)
 			if err != nil {
 				return nil, err
 			}
@@ -239,7 +240,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		return res, nil
 	case InterpNode:
-		val, err := e.eval(n.Nodes[0])
+		val, err := e.Eval(n.Nodes[0])
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +259,14 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		return nil, fmt.Errorf("unable to interpolate '%v' into a string", val)
 	case TextNode:
-		return n.Val(e.lx), nil
+		txt := n.Val(e.lx)
+
+		val, err := strconv.Unquote("\"" + txt + "\"")
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse string '%v': %w", txt, err)
+		}
+
+		return val, nil
 	case IntNode:
 		val, err := strconv.ParseInt(n.Val(e.lx), 0, 64)
 		if err != nil {
@@ -274,7 +282,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 	case ListNode:
 		vals := make([]interface{}, 0, len(n.Nodes))
 		for _, node := range n.Nodes {
-			val, err := e.eval(node)
+			val, err := e.Eval(node)
 			if err != nil {
 				return nil, err
 			}
@@ -285,7 +293,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		vals := make(map[string]interface{}, len(n.Nodes)/2)
 		for i := 0; i < len(n.Nodes); i += 2 {
 			ident := n.Nodes[i].Val(e.lx)
-			val, err := e.eval(n.Nodes[i+1])
+			val, err := e.Eval(n.Nodes[i+1])
 			if err != nil {
 				return nil, err
 			}
@@ -293,7 +301,7 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		return vals, nil
 	case OpNode + negate:
-		rhs, err := e.eval(n.Nodes[0])
+		rhs, err := e.Eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
@@ -307,12 +315,12 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 
 		return nil, fmt.Errorf("unable to negate '%v'", n.Type)
 	case OpNode + '+':
-		lhs, err := e.eval(n.Nodes[0])
+		lhs, err := e.Eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		rhs, err := e.eval(n.Nodes[1])
+		rhs, err := e.Eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
@@ -346,12 +354,12 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 
 		return nil, fmt.Errorf("cannot eval '%v' + '%v'", lhs, rhs)
 	case OpNode + '-':
-		lhs, err := e.eval(n.Nodes[0])
+		lhs, err := e.Eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		rhs, err := e.eval(n.Nodes[1])
+		rhs, err := e.Eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
@@ -375,12 +383,12 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 
 		return nil, fmt.Errorf("cannot eval '%v' - '%v'", lhs, rhs)
 	case OpNode + '*':
-		lhs, err := e.eval(n.Nodes[0])
+		lhs, err := e.Eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		rhs, err := e.eval(n.Nodes[1])
+		rhs, err := e.Eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}
@@ -403,12 +411,12 @@ func (e *Evaluator) eval(n *Node) (interface{}, error) {
 		}
 		return nil, fmt.Errorf("cannot eval '%v' * '%v'", lhs, rhs)
 	case OpNode + '/':
-		lhs, err := e.eval(n.Nodes[0])
+		lhs, err := e.Eval(n.Nodes[0])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval lhs: %w", err)
 		}
 
-		rhs, err := e.eval(n.Nodes[1])
+		rhs, err := e.Eval(n.Nodes[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to eval rhs: %w", err)
 		}

@@ -41,9 +41,18 @@ func main() {
 			break
 		}
 
-		lx, err := flatlang.Lex([]byte(line), "")
+		if !strings.HasSuffix(line, ";") {
+			line += ";"
+		}
+
+		var (
+			lx *flatlang.Lexer
+			px *flatlang.Parser
+		)
+
+		lx, err = flatlang.Lex([]byte(line), "")
 		if err == nil {
-			px, err := flatlang.Parse(lx)
+			px, err = flatlang.Parse(lx)
 			if err == nil {
 				fmt.Println(px.Format())
 				continue

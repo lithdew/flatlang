@@ -29,9 +29,9 @@ func TestCurry(t *testing.T) {
 
 	ex := NewEval(lx)
 
-	require.NoError(t, ex.register("items", fn))
+	require.NoError(t, ex.RegisterBuiltin("items", fn))
 
-	_, err = ex.eval(px.Result)
+	_, err = ex.Eval(px.Result)
 	require.NoError(t, err)
 
 	require.EqualValues(t, []string{"start", "test", "test_two", "end", "test", "test_two", "1"}, report)
@@ -53,9 +53,9 @@ func TestEval(t *testing.T) {
 	printFn := func(params ...interface{}) {
 		fmt.Println(params...)
 	}
-	require.NoError(t, ex.register("print", printFn))
+	require.NoError(t, ex.RegisterBuiltin("print", printFn))
 
-	res, err := ex.eval(px.Result)
+	res, err := ex.Eval(px.Result)
 	require.NoError(t, err)
 
 	fmt.Println()
